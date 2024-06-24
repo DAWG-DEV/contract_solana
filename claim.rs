@@ -109,7 +109,7 @@ pub struct Initialize<'info> {
         init_if_needed,
         payer = signer,
         space = size_of::<Global>() + 8,
-        seeds = [GLOBAL_SEED.as_ref()],
+        seeds = [GLOBAL_SEED.as_bytes()],
         bump,
         constraint = global.initialized == false @ Errors::AlreadyInitialized,
     )]
@@ -138,7 +138,7 @@ pub struct SetEnabled<'info> {
 
     #[account(
         mut,
-        seeds = [GLOBAL_SEED.as_ref()],
+        seeds = [GLOBAL_SEED.as_bytes()],
         bump,
         constraint = global.initialized == true @ Errors::NotInitialized,
         constraint = global.authority == signer.key() @ Errors::NotAuthorized,
@@ -156,7 +156,7 @@ pub struct UpdateUserAmount<'info> {
     pub signer: Signer<'info>,
 
     #[account(
-        seeds = [GLOBAL_SEED.as_ref()],
+        seeds = [GLOBAL_SEED.as_bytes()],
         bump,
         constraint = global.initialized == true @ Errors::NotInitialized,
         constraint = global.authority == signer.key() @ Errors::NotAuthorized,
@@ -166,7 +166,7 @@ pub struct UpdateUserAmount<'info> {
     #[account(
         init_if_needed,
         payer = signer,
-        seeds = [CLAIM_RECORD_SEED.as_ref(), user.as_ref()],
+        seeds = [CLAIM_RECORD_SEED.as_bytes(), user.as_ref()],
         space = size_of::<UserTokenAmount>() + 8,
         bump,
     )]
@@ -185,7 +185,7 @@ pub struct ClaimToken<'info> {
     pub authority: AccountInfo<'info>,
 
     #[account(
-        seeds = [GLOBAL_SEED.as_ref()],
+        seeds = [GLOBAL_SEED.as_bytes()],
         bump,
         constraint = global.initialized == true @ Errors::NotInitialized,
         constraint = global.is_enabled == true @ Errors::NotEnabled,
@@ -212,7 +212,7 @@ pub struct ClaimToken<'info> {
 
     #[account(
         mut,
-        seeds = [CLAIM_RECORD_SEED.as_ref(), user_token_amount.owner.as_ref()],
+        seeds = [CLAIM_RECORD_SEED.as_bytes(), user_token_amount.owner.as_ref()],
         bump,
         constraint = user_token_amount.owner == signer.key() @ Errors::NotAuthorized,
         constraint = user_token_amount.amount > 0 @ Errors::NotSufficientAmount,

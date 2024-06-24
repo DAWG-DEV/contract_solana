@@ -101,7 +101,7 @@ pub struct InitToken<'info> {
     pub metadata: UncheckedAccount<'info>,
     #[account(
         init,
-        seeds = [MINT_SEED.as_ref()],
+        seeds = [MINT_SEED.as_bytes()],
         bump,
         payer = payer,
         mint::decimals = 5,
