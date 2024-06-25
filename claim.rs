@@ -74,6 +74,41 @@ mod claim {
         );
         Ok(())
     }
+
+    pub fn withdraw_token(ctx: Context<WithdrawToken>) -> Result<()> {
+        let global = &ctx.accounts.global;
+        let mint = &ctx.accounts.mint;
+
+        // signer: global account pubKey
+        let seeds = &[GLOBAL_SEED.as_bytes(), &[ctx.bumps.global]];
+        let transfer_signer = [&seeds[..]];
+
+        let withdraw_ata = &mut ctx.accounts.withdraw_ata;
+        let program_ata = &mut ctx.accounts.program_ata;
+
+        let amount = program_ata.amount;
+
+        transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: program_ata.to_account_info(),
+                    to: withdraw_ata.to_account_info(),
+                    authority: global.to_account_info(),
+                },
+                &transfer_signer,
+            ),
+            amount,
+        )?;
+        msg!(
+            "authority {} withdraw to ata {} owner {} amount {}",
+            &ctx.accounts.signer.key().to_string(),
+            withdraw_ata.key().to_string(),
+            withdraw_ata.owner.to_string(),
+            amount / 10u64.pow(mint.decimals as u32)
+        );
+        Ok(())
+    }
 }
 
 #[constant]
@@ -223,6 +258,43 @@ pub struct ClaimToken<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+pub struct WithdrawToken<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    pub withdraw: AccountInfo<'info>,
+
+    #[account(
+        seeds = [GLOBAL_SEED.as_bytes()],
+        bump,
+        constraint = global.initialized == true @ Errors::NotInitialized,
+        constraint = global.authority == signer.key() @ Errors::NotAuthorized,
+    )]
+    pub global: Account<'info, Global>,
+
+    pub mint: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = global,
+    )]
+    pub program_ata: Account<'info, TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = mint,
+        associated_token::authority = withdraw,
+    )]
+    pub withdraw_ata: Account<'info, TokenAccount>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[error_code]
