@@ -271,6 +271,7 @@ pub struct WithdrawToken<'info> {
         seeds = [GLOBAL_SEED.as_bytes()],
         bump,
         constraint = global.initialized == true @ Errors::NotInitialized,
+        constraint = global.is_enabled == false @ Errors::IsEnabled,
         constraint = global.authority == signer.key() @ Errors::NotAuthorized,
     )]
     pub global: Account<'info, Global>,
@@ -310,6 +311,9 @@ pub enum Errors {
 
     #[msg("The program is not enabled.")]
     NotEnabled,
+
+    #[msg("The program is enabled.")]
+    IsEnabled,
 
     #[msg("The mint key is not invalid")]
     NotInvalidMintKey,
