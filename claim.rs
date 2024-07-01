@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use std::mem::size_of;
 
-declare_id!("2A6A8TKbKdP5goC1WLZCB3Wd86bzM85x3ZgNJN1EHssi");
+declare_id!("6Ue4jsKhhFxLuQVnnPUVV7kGgJMVZNhG2AifaKVwRFnW");
 
 #[program]
 mod claim {
@@ -15,6 +15,7 @@ mod claim {
         let global = &mut ctx.accounts.global;
         global.initialized = true;
         global.authority = ctx.accounts.authority.key();
+        global.mint = ctx.accounts.mint.key();
 
         msg!("init authority {}", global.authority.to_string());
         Ok(())
@@ -50,7 +51,18 @@ mod claim {
 
         let user_ata = &mut ctx.accounts.user_ata;
         let program_ata = &mut ctx.accounts.program_ata;
-
+        /*
+        // check valid mint key
+        if mint.key() != ctx.accounts.global.mint {
+            return Err(Errors::NotInvalidMintKey.into());
+        }
+        if user_ata.mint.key() != ctx.accounts.global.mint {
+            return Err(Errors::NotInvalidMintKey.into());
+        }
+        if program_ata.mint.key() != ctx.accounts.global.mint {
+            return Err(Errors::NotInvalidMintKey.into());
+        }
+        */
         let amount = claim_token_account.amount;
 
         claim_token_account.close(ctx.accounts.authority.clone())?;
@@ -122,6 +134,7 @@ pub struct Global {
     pub initialized: bool,
     pub authority: Pubkey,
     pub is_enabled: bool,
+    pub mint: Pubkey,
 }
 
 // The reason why not using a Map or Vec to storage users:
@@ -228,10 +241,14 @@ pub struct ClaimToken<'info> {
     )]
     pub global: Account<'info, Global>,
 
+    #[account(
+        constraint = global.mint == mint.key() @ Errors::NotInvalidMintKey,
+    )]
     pub mint: Account<'info, Mint>,
 
     #[account(
         mut,
+        constraint = global.mint == program_ata.mint.key() @ Errors::NotInvalidMintKey,
         associated_token::mint = mint,
         associated_token::authority = global,
     )]
@@ -240,6 +257,7 @@ pub struct ClaimToken<'info> {
     #[account(
         init_if_needed,
         payer = signer,
+        constraint = global.mint == user_ata.mint.key() @ Errors::NotInvalidMintKey,
         associated_token::mint = mint,
         associated_token::authority = signer,
     )]
@@ -275,11 +293,14 @@ pub struct WithdrawToken<'info> {
         constraint = global.authority == signer.key() @ Errors::NotAuthorized,
     )]
     pub global: Account<'info, Global>,
-
+    #[account(
+        constraint = global.mint == mint.key() @ Errors::NotInvalidMintKey,
+    )]
     pub mint: Account<'info, Mint>,
 
     #[account(
         mut,
+        constraint = global.mint == program_ata.mint.key() @ Errors::NotInvalidMintKey,
         associated_token::mint = mint,
         associated_token::authority = global,
     )]
@@ -288,6 +309,7 @@ pub struct WithdrawToken<'info> {
     #[account(
         init_if_needed,
         payer = signer,
+        constraint = global.mint == withdraw_ata.mint.key() @ Errors::NotInvalidMintKey,
         associated_token::mint = mint,
         associated_token::authority = withdraw,
     )]
